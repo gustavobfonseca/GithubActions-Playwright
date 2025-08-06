@@ -1,27 +1,47 @@
-name: Playwright Tests
+name: Testes Playwright com Relatório HTML
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:  # Permite execução manual
+
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+    
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: lts/*
-    - name: Install dependencies
+    
+    - name: Instalar dependências
       run: npm ci
-    - name: Install Playwright Browsers
+      
+    - name: Instalar navegadores do Playwright
       run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
+    
+    - name: Executar testes e gerar relatório HTML
+      run: npx playwright test --reporter=html
+    
+    - name: Fazer upload do relatório como artefato
+      if: always()  # Executa mesmo se os testes falharem
+      uses: actions/upload-artifact@v4
       with:
-        name: playwright-report
+        name: relatorio-playwright
         path: playwright-report/
         retention-days: 30
+    
+    - name: Publicar relatório no GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: playwright-report
+        branch: gh-pages
+        target-folder: relatorio
+        clean: true
